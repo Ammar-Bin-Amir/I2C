@@ -122,9 +122,9 @@ module i2c_master (
             data_read <= 0;
         end
         else begin
-            // Write
-            if (read_write_save == 0) begin
-                if ((current_state == DATA_BYTE_1) || (current_state == DATA_BYTE_2) || (current_state == DATA_BYTE_3) || (current_state == DATA_BYTE_4)) begin
+            if ((current_state == DATA_BYTE_1) || (current_state == DATA_BYTE_2) || (current_state == DATA_BYTE_3) || (current_state == DATA_BYTE_4)) begin
+                // Write
+                if (read_write_save == 0) begin
                     if (scl == 1'b1) begin
                         data_write <= {data_write[30:0],1'b0};
                     end
@@ -132,13 +132,8 @@ module i2c_master (
                         data_write <= data_write;
                     end
                 end
-                else begin
-                    data_write <= data_write;
-                end
-            end
-            // Read
-            else if (read_write_save == 1) begin
-                if ((current_state == DATA_BYTE_1) || (current_state == DATA_BYTE_2) || (current_state == DATA_BYTE_3) || (current_state == DATA_BYTE_4)) begin
+                // Read
+                else if (read_write_save == 1) begin
                     if (scl == 1'b0) begin
                         data_read <= {data_read[30:0],sda_in};
                     end
@@ -147,6 +142,7 @@ module i2c_master (
                     end
                 end
                 else begin
+                    data_write <= data_write;
                     data_read <= data_read;
                 end
             end
@@ -364,7 +360,7 @@ module i2c_master (
                     scl = ~clock_count;
                     // Write
                     if (read_write_save == 0) begin
-                        sda_out = data_write[31];
+                        sda_out = data_write[23];
                     end
                     // Read
                     if (read_write_save == 1) begin
@@ -406,7 +402,7 @@ module i2c_master (
                     scl = ~clock_count;
                     // Write
                     if (read_write_save == 0) begin
-                        sda_out = data_write[31];
+                        sda_out = data_write[15];
                     end
                     // Read
                     if (read_write_save == 1) begin
@@ -448,7 +444,7 @@ module i2c_master (
                     scl = ~clock_count;
                     // Write
                     if (read_write_save == 0) begin
-                        sda_out = data_write[31];
+                        sda_out = data_write[7];
                     end
                     // Read
                     if (read_write_save == 1) begin
