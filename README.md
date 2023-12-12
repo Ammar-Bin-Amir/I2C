@@ -25,3 +25,7 @@ Following the slave address, an 8-bit register address is sent. This register ad
 - ### 32-Bit Data
 
 For write operations, after sending the register address, the master sends a 32-bit data payload to be written into the specified register. For read operations, the master initiates the read request, and the slave responds by sending the 32-bit data in response to the register address.
+
+## Reference
+
+[I<sup>2</sup>C Specification](https://www.nxp.com/docs/en/user-guide/UM10204.pdf)
