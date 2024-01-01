@@ -218,26 +218,26 @@ module i2c_slave (
         end
         else begin
             if (read_write_save == 1) begin
-                if (current_state == REGISTER_ADDRESS) begin
-                    if ((bit_count >= 9) && (bit_count <= 16)) begin
+                if (current_state == SLAVE_ADDRESS_ACKNOWLEDGE) begin
+                    // if ((bit_count >= 2) && (bit_count <= 7)) begin
                         data_read <= data_write;
-                    end
+                    // end
                 end
                 else if ((current_state >= DATA_BYTE_1) && (current_state <= DATA_BYTE_4_ACKNOWLEDGE)) begin
                     // Byte 1
-                    if ((bit_count >= 19) && (bit_count <= 26)) begin
+                    if ((bit_count >= 9) && (bit_count <= 16)) begin
                         data_read <= {data_read[30:0],1'b0};
                     end
                     // Byte 2
-                    else if ((bit_count >= 28) && (bit_count <= 35)) begin
+                    else if ((bit_count >= 19) && (bit_count <= 26)) begin
                         data_read <= {data_read[30:0],1'b0};
                     end
                     // Byte 3
-                    else if ((bit_count >= 37) && (bit_count <= 44)) begin
+                    else if ((bit_count >= 28) && (bit_count <= 35)) begin
                         data_read <= {data_read[30:0],1'b0};
                     end
                     // Byte 4
-                    else if ((bit_count >= 46) && (bit_count <= 53)) begin
+                    else if ((bit_count >= 37) && (bit_count <= 44)) begin
                         data_read <= {data_read[30:0],1'b0};
                     end
                     else begin
@@ -384,6 +384,10 @@ module i2c_slave (
                     if ((accelerated_bit_count == 9) && (sda_in == 1'b1)) begin
                         next_state = STOP;
                     end
+                    // Repeated Start Detection
+                    if ((accelerated_bit_count == 9) && (scl == 1'b1) && (repeated_start_indication == 1'b1)) begin
+                        next_state = DATA_BYTE_1;
+                    end
                 end
                 REGISTER_ADDRESS: begin
                     sda_in = 1;
@@ -411,14 +415,16 @@ module i2c_slave (
                     // Write
                     if (read_write_save == 0) begin
                         sda_in = 1;
+                        if (accelerated_bit_count == 26) begin
+                            next_state = DATA_BYTE_1_ACKNOWLEDGE;
+                        end
                     end
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = data_read[31];
-                    end
-                    // Next State
-                    if (accelerated_bit_count == 26) begin
-                        next_state = DATA_BYTE_1_ACKNOWLEDGE;
+                        if (accelerated_bit_count == 17) begin
+                            next_state = DATA_BYTE_1_ACKNOWLEDGE;
+                        end
                     end
                 end
                 DATA_BYTE_1_ACKNOWLEDGE: begin
@@ -437,7 +443,7 @@ module i2c_slave (
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = 1;
-                        if ((accelerated_bit_count == 27) && (sda_in == 1'b1)) begin
+                        if ((accelerated_bit_count == 18) && (sda_in == 1'b1)) begin
                             next_state = DATA_BYTE_2;
                         end
                     end
@@ -446,14 +452,16 @@ module i2c_slave (
                     // Write
                     if (read_write_save == 0) begin
                         sda_in = 1;
+                        if (accelerated_bit_count == 35) begin
+                            next_state = DATA_BYTE_2_ACKNOWLEDGE;
+                        end
                     end
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = data_read[31];
-                    end
-                    // Next State
-                    if (accelerated_bit_count == 35) begin
-                        next_state = DATA_BYTE_2_ACKNOWLEDGE;
+                        if (accelerated_bit_count == 26) begin
+                            next_state = DATA_BYTE_2_ACKNOWLEDGE;
+                        end
                     end
                 end
                 DATA_BYTE_2_ACKNOWLEDGE: begin
@@ -472,7 +480,7 @@ module i2c_slave (
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = 1;
-                        if ((accelerated_bit_count == 36) && (sda_in == 1'b1)) begin
+                        if ((accelerated_bit_count == 27) && (sda_in == 1'b1)) begin
                             next_state = DATA_BYTE_3;
                         end
                     end
@@ -481,15 +489,17 @@ module i2c_slave (
                     // Write
                     if (read_write_save == 0) begin
                         sda_in = 1;
+                        if (accelerated_bit_count == 44) begin
+                            next_state = DATA_BYTE_3_ACKNOWLEDGE;
+                        end
                     end
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = data_read[31];
-                    end
-                    // Next State
-                    if (accelerated_bit_count == 44) begin
-                        next_state = DATA_BYTE_3_ACKNOWLEDGE;
-                    end
+                        if (accelerated_bit_count == 35) begin
+                            next_state = DATA_BYTE_3_ACKNOWLEDGE;
+                        end
+                    end 
                 end
                 DATA_BYTE_3_ACKNOWLEDGE: begin
                     // Write
@@ -507,7 +517,7 @@ module i2c_slave (
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = 1;
-                        if ((accelerated_bit_count == 45) && (sda_in == 1'b1)) begin
+                        if ((accelerated_bit_count == 36) && (sda_in == 1'b1)) begin
                             next_state = DATA_BYTE_4;
                         end
                     end
@@ -516,14 +526,16 @@ module i2c_slave (
                     // Write
                     if (read_write_save == 0) begin
                         sda_in = 1;
+                        if (accelerated_bit_count == 53) begin
+                            next_state = DATA_BYTE_4_ACKNOWLEDGE;
+                        end
                     end
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = data_read[31];
-                    end
-                    // Next State
-                    if (accelerated_bit_count == 53) begin
-                        next_state = DATA_BYTE_4_ACKNOWLEDGE;
+                        if (accelerated_bit_count == 44) begin
+                            next_state = DATA_BYTE_4_ACKNOWLEDGE;
+                        end
                     end
                 end
                 DATA_BYTE_4_ACKNOWLEDGE: begin
@@ -542,7 +554,7 @@ module i2c_slave (
                     // Read
                     if (read_write_save == 1) begin
                         sda_in = 1;
-                        if ((accelerated_bit_count == 54) && (sda_in == 1'b1)) begin
+                        if ((accelerated_bit_count == 45) && (sda_in == 1'b1)) begin
                             next_state = STOP;
                         end
                     end

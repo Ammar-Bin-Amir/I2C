@@ -164,7 +164,7 @@ module i2c_master (
             ack = 1;
         end
         else begin
-            if ((bit_count == 26) || (bit_count == 35) || (bit_count == 44) || (bit_count == 53)) begin
+            if ((bit_count == 17) || (bit_count == 26) || (bit_count == 35) || (bit_count == 44)) begin
                 ack = 0;
             end
             else begin
@@ -264,33 +264,57 @@ module i2c_master (
                 SLAVE_ADDRESS_ACKNOWLEDGE: begin
                     scl = ~clock_count;
                     sda_out = 1;
-                    if ((bit_count == 8) && (scl == 1'b1)) begin
-                        // ACK
-                        if (sda_in == 1'b0) begin
-                            next_state = REGISTER_ADDRESS;
+                    // Write
+                    if (read_write_save == 0) begin
+                        if ((bit_count == 8) && (scl == 1'b1)) begin
+                            // ACK
+                            if (sda_in == 1'b0) begin
+                                next_state = REGISTER_ADDRESS;
+                            end
+                            // NACK
+                            else begin
+                                next_state = STOP;
+                            end
                         end
-                        // NACK
                         else begin
-                            next_state = STOP;
+                            next_state = current_state;
                         end
                     end
+                    // Read
                     else begin
-                        next_state = current_state;
+                        // Start
+                        if (repeated_start_indication == 1'b0) begin
+                            if ((bit_count == 8) && (scl == 1'b1)) begin
+                                // ACK
+                                if (sda_in == 1'b0) begin
+                                    next_state = REGISTER_ADDRESS;
+                                end
+                                // NACK
+                                else begin
+                                    next_state = STOP;
+                                end
+                            end
+                            else begin
+                                next_state = current_state;
+                            end
+                        end
+                        // Repeated Start
+                        else begin
+                            if ((bit_count == 8) && (scl == 1'b1)) begin
+                                // ACK
+                                if (sda_in == 1'b0) begin
+                                    next_state = DATA_BYTE_1;
+                                end
+                                // NACK
+                                else begin
+                                    next_state = STOP;
+                                end
+                            end
+                            else begin
+                                next_state = current_state;
+                            end
+                        end
                     end
-                    // // ACK
-                    // if ((bit_count == 8) && (scl == 1'b1) && (sda_in == 1'b0)) begin
-                    //     next_state = REGISTER_ADDRESS;
-                    // end
-                    // else begin
-                    //     next_state = current_state;
-                    // end
-                    // // NACK
-                    // if ((bit_count == 8) && (scl == 1'b1) && (sda_in == 1'b1)) begin
-                    //     next_state = STOP;
-                    // end
-                    // else begin
-                    //     next_state = current_state;
-                    // end
                 end
                 REGISTER_ADDRESS: begin
                     scl = ~clock_count;
@@ -320,14 +344,6 @@ module i2c_master (
                         else begin
                             next_state = current_state;
                         end
-                        // // ACK
-                        // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b0)) begin
-                        //     next_state = DATA_BYTE_1;
-                        // end
-                        // // NACK
-                        // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b1)) begin
-                        //     next_state = STOP;
-                        // end
                     end
                     // Read
                     else begin
@@ -346,14 +362,6 @@ module i2c_master (
                             else begin
                                 next_state = current_state;
                             end
-                            // // ACK
-                            // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b0)) begin
-                            //     next_state = REPEATED_START;
-                            // end
-                            // // NACK
-                            // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b1)) begin
-                            //     next_state = STOP;
-                            // end
                         end
                         // Repeated Start
                         else begin
@@ -370,14 +378,6 @@ module i2c_master (
                             else begin
                                 next_state = current_state;
                             end
-                            // // ACK
-                            // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b0)) begin
-                            //     next_state = DATA_BYTE_1;
-                            // end
-                            // // NACK
-                            // if ((bit_count == 17) && (scl == 1'b1) && (sda_in == 1'b1)) begin
-                            //     next_state = STOP;
-                            // end
                         end
                     end
                 end
@@ -386,17 +386,22 @@ module i2c_master (
                     // Write
                     if (read_write_save == 0) begin
                         sda_out = data_write[31];
+                        if ((bit_count == 25) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_1_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                     // Read
                     else begin
                         sda_out = 1;
-                    end
-                    // Next State
-                    if ((bit_count == 25) && (scl == 1'b1)) begin
-                        next_state = DATA_BYTE_1_ACKNOWLEDGE;
-                    end
-                    else begin
-                        next_state = current_state;
+                        if ((bit_count == 16) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_1_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                 end
                 DATA_BYTE_1_ACKNOWLEDGE: begin
@@ -429,7 +434,7 @@ module i2c_master (
                     // Read
                     else begin
                         sda_out = ack;
-                        if ((bit_count == 26) && (scl == 1'b1)) begin
+                        if ((bit_count == 17) && (scl == 1'b1)) begin
                             // ACK
                             if (sda_out == 1'b0) begin
                                 next_state = DATA_BYTE_2;
@@ -457,17 +462,22 @@ module i2c_master (
                     // Write
                     if (read_write_save == 0) begin
                         sda_out = data_write[23];
+                        if ((bit_count == 34) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_2_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                     // Read
                     else begin
                         sda_out = 1;
-                    end
-                    // Next State
-                    if ((bit_count == 34) && (scl == 1'b1)) begin
-                        next_state = DATA_BYTE_2_ACKNOWLEDGE;
-                    end
-                    else begin
-                        next_state = current_state;
+                        if ((bit_count == 25) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_2_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                 end
                 DATA_BYTE_2_ACKNOWLEDGE: begin
@@ -500,7 +510,7 @@ module i2c_master (
                     // Read
                     else begin
                         sda_out = ack;
-                        if ((bit_count == 35) && (scl == 1'b1)) begin
+                        if ((bit_count == 26) && (scl == 1'b1)) begin
                             // ACK
                             if (sda_out == 1'b0) begin
                                 next_state = DATA_BYTE_3;
@@ -528,17 +538,22 @@ module i2c_master (
                     // Write
                     if (read_write_save == 0) begin
                         sda_out = data_write[15];
+                        if ((bit_count == 43) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_3_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                     // Read
                     else begin
                         sda_out = 1;
-                    end
-                    // Next State
-                    if ((bit_count == 43) && (scl == 1'b1)) begin
-                        next_state = DATA_BYTE_3_ACKNOWLEDGE;
-                    end
-                    else begin
-                        next_state = current_state;
+                        if ((bit_count == 34) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_3_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                 end
                 DATA_BYTE_3_ACKNOWLEDGE: begin
@@ -571,7 +586,7 @@ module i2c_master (
                     // Read
                     else begin
                         sda_out = ack;
-                        if ((bit_count == 44) && (scl == 1'b1)) begin
+                        if ((bit_count == 35) && (scl == 1'b1)) begin
                             // ACK
                             if (sda_out == 1'b0) begin
                                 next_state = DATA_BYTE_4;
@@ -599,17 +614,22 @@ module i2c_master (
                     // Write
                     if (read_write_save == 0) begin
                         sda_out = data_write[7];
+                        if ((bit_count == 52) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_4_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                     // Read
                     else begin
                         sda_out = 1;
-                    end
-                    // Next State
-                    if ((bit_count == 52) && (scl == 1'b1)) begin
-                        next_state = DATA_BYTE_4_ACKNOWLEDGE;
-                    end
-                    else begin
-                        next_state = current_state;
+                        if ((bit_count == 43) && (scl == 1'b1)) begin
+                            next_state = DATA_BYTE_4_ACKNOWLEDGE;
+                        end
+                        else begin
+                            next_state = current_state;
+                        end
                     end
                 end
                 DATA_BYTE_4_ACKNOWLEDGE: begin
@@ -642,7 +662,7 @@ module i2c_master (
                     // Read
                     else begin
                         sda_out = ~ack;
-                        if ((bit_count == 53) && (scl == 1'b1)) begin
+                        if ((bit_count == 44) && (scl == 1'b1)) begin
                             // ACK
                             if (sda_out == 1'b0) begin
                                 next_state = STOP;
